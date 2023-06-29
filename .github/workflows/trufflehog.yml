@@ -1,0 +1,52 @@
+name: Secret Scanning
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  secret_scanning:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install TruffleHog
+        run: pip install trufflehog
+
+
+      - name: Run TruffleHog scan
+        if: ${{ always() }}
+        run: |
+          pwd
+          mkdir -p findings
+          trufflehog --regex --entropy=False .| tee findings/trufflehog_report.txt
+          ls
+          pwd
+          # Check if any secrets were found
+          if [ -s findings/trufflehog_report.txt ]; then
+            echo "Secrets found!"
+          else
+            echo "No secrets found."
+          fi
+        continue-on-error: ${{ true }}
+        env:
+          ARTIFACTS_DIR: ${{ github.workspace }}/findings
+
+      - name: Upload findings as artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: TruffleHog Findings
+          path: ${{ env.ARTIFACTS_DIR }}/home/runner/work/cairo/cairo/findings
