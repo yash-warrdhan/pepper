@@ -33,6 +33,7 @@ jobs:
           mkdir -p findings
           trufflehog --regex --entropy=False .| tee findings/trufflehog_report.txt
           ls
+          cd findings
           pwd
           # Check if any secrets were found
           if [ -s findings/trufflehog_report.txt ]; then
@@ -49,4 +50,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: TruffleHog Findings
-          path: ${{ env.ARTIFACTS_DIR }}/home/runner/work/cairo/cairo/findings
+          path: ${{ env.ARTIFACTS_DIR }}/home/runner/work/pepper/pepper/findings/
