@@ -57,14 +57,7 @@ jobs:
               --metrics=off \
               --config="p/default"
         
-        - name: differential scan
-          run: |
-            semgrep scan \
-            --error \
-            --metrics=off \
-            --baseline-commit $ \
-            --config="p/default"
-
+        
         - name: save report as pipeline artifact
           uses: actions/upload-artifact@v3
           with:
