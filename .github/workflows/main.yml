@@ -11,15 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          semgrep-version: 'latest'
+      - name: Install Python 3
+        run: sudo apt-get update && sudo apt-get install -y python3
 
       - name: Install Semgrep
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y semgrep
+        run: python3 -m pip install semgrep
 
       - name: Run Semgrep
         run: semgrep ci --severity=high,medium,low --format=json
