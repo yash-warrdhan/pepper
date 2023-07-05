@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - master
+  schedule:
+    - cron: "30 23 * * *"
   workflow_dispatch:
 
 jobs:
@@ -33,7 +35,7 @@ jobs:
 
       - name: Convert SARIF to HTML
         run: |
-          python convert_sarif.py report.sarif
+          python .github/workflows/convert_sarif.py report.sarif
 
       - name: Upload HTML Report as Artifact
         uses: actions/upload-artifact@v2
@@ -65,7 +67,7 @@ jobs:
 
       - name: Convert SARIF to HTML
         run: |
-          python convert_sarif.py report.sarif
+          python .github/workflows/convert_sarif.py report.sarif
 
       - name: Upload HTML Report as Artifact
         uses: actions/upload-artifact@v2
