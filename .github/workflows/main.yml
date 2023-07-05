@@ -1,28 +1,43 @@
-name: SAST with Semgrep
+name: Semgrep Full Scan
 
 on:
   push:
     branches:
       - master
+  schedule:
+    - cron:  '0 1 * * 6'
 
 jobs:
-  semgrep:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
 
-      - name: Install Python 3
-        run: sudo apt-get update && sudo apt-get install -y python3
+  semgrep-full:
+      runs-on: ubuntu-latest
+      container:
+        image: returntocorp/semgrep
 
-      - name: Install Semgrep
-        run: python3 -m pip install semgrep
+      steps:
 
-      - name: Run Semgrep
-        run: semgrep ci --severity=high,medium,low --format=json
+        # step 1
+        - name: clone application source code
+          uses: actions/checkout@v3
 
-      - name: Upload Semgrep findings
-        uses: actions/upload-artifact@v2
-        with:
-          name: semgrep-findings
-          path: findings.json
+        # step 2
+        - name: full scan
+          run: |
+            semgrep \
+              --sarif --output report.sarif \
+              --metrics=off \
+              --config="p/default"
 
+        # step 3
+        - name: save report as pipeline artifact
+          uses: actions/upload-artifact@v3
+          with:
+            name: report.sarif
+            path: report.sarif
+
+        # step 4
+        - name: publish code scanning alerts
+          uses: github/codeql-action/upload-sarif@v2
+          with:
+            sarif_file: report.sarif
+            category: semgrep
