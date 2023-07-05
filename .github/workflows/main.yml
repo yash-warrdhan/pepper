@@ -16,6 +16,11 @@ jobs:
         with:
           semgrep-version: 'latest'
 
+      - name: Install Semgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y semgrep
+
       - name: Run Semgrep
         run: semgrep ci --severity=high,medium,low --format=json
 
