@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install Semgrep
-        uses: semgrep/semgrep-action@v1.11.0
+
+      - name: Setup Semgrep
+        uses: returntocorp/semgrep-action@v1
         with:
-          semgrep-version: latest
+          semgrep-version: 'latest'
+
       - name: Run Semgrep
-        run: |
-          semgrep ci --severity=high,critical --output=sarif .
-      - name: Upload SARIF file to artifacts
+        run: semgrep ci --severity=high,medium,low --format=json
+
+      - name: Upload Semgrep findings
         uses: actions/upload-artifact@v2
         with:
-          name: semgrep-results
-          path: semgrep.sarif
+          name: semgrep-findings
+          path: findings.json
+
