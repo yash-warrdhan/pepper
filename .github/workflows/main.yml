@@ -27,6 +27,14 @@ jobs:
               --sarif --output report.sarif \
               --metrics=off \
               --config="p/default"
+        
+        - name: differential scan
+          run: |
+            semgrep scan \
+            --error \
+            --metrics=off \
+            --baseline-commit $ \
+            --config="p/default"
 
         # step 3
         - name: save report as pipeline artifact
