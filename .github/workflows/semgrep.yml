@@ -24,72 +24,15 @@ jobs:
             --metrics=off \
             --config="p/default"
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: pip install py-sarif-om
+      - name: Install sarifconv
+        run: |
+          wget https://github.com/microsoft/sarif-visualizer/releases/latest/download/sarifconv-linux.zip
+          unzip sarifconv-linux.zip
+          chmod +x sarifconv
 
       - name: Convert SARIF to HTML
         run: |
-          python - << EOF
-          import sys
-          import os
-          import json
-
-          def get_severity_label(result):
-              # Map result properties to severity labels
-              severity_map = {
-                  "high": "High",
-                  "medium": "Medium",
-                  "low": "Low"
-              }
-
-              # Check if 'level' property exists
-              if 'level' in result:
-                  severity = result['level']
-              elif 'properties' in result and 'severity' in result['properties']:
-                  severity = result['properties']['severity']
-              else:
-                  severity = ""
-
-              return severity_map.get(severity.lower(), "")
-
-          # Load SARIF file
-          with open('report.sarif', 'r') as sarif_file:
-              sarif_data = json.load(sarif_file)
-
-          # Extract relevant information from SARIF data
-          results = []
-          for run in sarif_data['runs']:
-              for result in run.get('results', []):
-                  results.append(result)
-
-          # Generate HTML representation
-          html_output = "<html><head><title>SARIF Report</title></head><body>"
-          html_output += "<h1>SARIF Report</h1>"
-          html_output += "<table>"
-          html_output += "<tr><th>Serial Number</th><th>Rule</th><th>Severity</th><th>Message</th><th>Location</th></tr>"
-
-          for idx, result in enumerate(results, start=1):
-              rule_id = result['ruleId']
-              severity = get_severity_label(result)
-              message = result['message']['text']
-              location = result.get('locations', [{}])[0].get('physicalLocation', {}).get('artifactLocation', {}).get('uri', "")
-              line_number = result.get('locations', [{}])[0].get('physicalLocation', {}).get('region', {}).get('startLine', "")
-
-              html_output += f"<tr><td>{idx}</td><td>{rule_id}</td><td>{severity}</td><td>{message}</td><td>{location}:{line_number}</td></tr>"
-
-          html_output += "</table></body></html>"
-
-          # Write HTML output to file
-          with open('output.html', 'w') as output_file:
-              output_file.write(html_output)
-
-          print(f"Conversion completed successfully. Output file saved as output.html")
-          EOF
+          ./sarifconv report.sarif
 
       - name: Save HTML report as artifact
         uses: actions/upload-artifact@v3
