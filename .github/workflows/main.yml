@@ -1,0 +1,24 @@
+name: SAST with Semgrep
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Semgrep
+        uses: semgrep/semgrep-action@v1.11.0
+        with:
+          semgrep-version: latest
+      - name: Run Semgrep
+        run: |
+          semgrep ci --severity=high,critical --output=sarif .
+      - name: Upload SARIF file to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: semgrep-results
+          path: semgrep.sarif
