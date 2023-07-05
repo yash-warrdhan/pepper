@@ -38,38 +38,44 @@ jobs:
         with:
           name: secret_scan_output
           path: detect_secrets_output.txt
+   
 
-  sast:
-    name: Semgrep SAST Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+  semgrep-full:
+      runs-on: ubuntu-latest
+      container:
+        image: returntocorp/semgrep
+
+      steps:
+
+        - name: clone application source code
+          uses: actions/checkout@v3
+
+        - name: full scan
+          run: |
+            semgrep \
+              --sarif --output report.sarif \
+              --metrics=off \
+              --config="p/default"
+        
+        - name: differential scan
+          run: |
+            semgrep scan \
+            --error \
+            --metrics=off \
+            --baseline-commit $ \
+            --config="p/default"
+
+        - name: save report as pipeline artifact
+          uses: actions/upload-artifact@v3
+          with:
+            name: report.sarif
+            path: report.sarif
+
+        - name: publish code scanning alerts
+          uses: github/codeql-action/upload-sarif@v2
+          with:
+            sarif_file: report.sarif
+            category: semgrep
+
+
       
-      - name: Setup Python
-        uses: actions/setup-python@v2
-      
-      - name: Install Semgrep
-        run: pip install semgrep
-      
-      - name: Run Semgrep
-        run: semgrep --config auto --severity=ERROR --severity=WARNING --severity=INFO --sarif --output sast_scan.sarif
-      
-      - name: Run commands
-        run: |
-          sudo pip3 install sarif-tools
-          sarif html sast_scan.sarif
-          chmod 777 sast_scan.html
-          ls -la
-          sed 's|<h3>Sarif Summary: <b>semgrep<\/b><\/h3>|<h3 style="text-align: center;">Vunet SAST Scanning Report<\/h3>|' sast_scan.html > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
-          { echo '<div style="text-align:center"><img src="https://vunetsystems.com/wp-content/uploads/2021/12/Vunet-Logo.png" width="200" height="50" /></div>'; cat sast_scan.html; } > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
-      
-      - name: Upload all artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: all-artifacts
-          path: |
-            sast_scan.sarif
-            sast_scan.html
-            # Add other artifacts here separated by a newline
-            detect_secrets_output.txt
