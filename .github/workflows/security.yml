@@ -45,10 +45,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Install virtualenv
+        run: sudo apt-get install -y virtualenv
+
       - name: Create virtualenv
         run: |
           virtualenv bandit-env
-          python3 -m venv bandit-env
           source bandit-env/bin/activate
 
       - name: Install Bandit
