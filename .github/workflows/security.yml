@@ -90,3 +90,21 @@ jobs:
         with:
           name: bandit_output
           path: bandit_output.json
+
+  pre_commit_hook:
+    name: Pre-commit Hook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+          conda install -c conda-forge pre-commit
+
+      - name: Set up pre-commit hooks
+        run: pre-commit install
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files
