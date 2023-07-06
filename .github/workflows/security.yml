@@ -32,7 +32,8 @@ jobs:
       - name: Run Detect Secrets Scan
         run: |
           detect-secrets scan > detect_secrets_output.txt
-      - name: Upload Output as Artifact
+
+      - name: Upload Secret Scan Artifact
         uses: actions/upload-artifact@v2
         with:
           name: secret_scan_output
@@ -63,15 +64,13 @@ jobs:
           sed 's|<h3>Sarif Summary: <b>semgrep<\/b><\/h3>|<h3 style="text-align: center;">Vunet SAST Scanning Report<\/h3>|' sast_scan.html > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
           { echo '<div style="text-align:center"><img src="https://vunetsystems.com/wp-content/uploads/2021/12/Vunet-Logo.png" width="200" height="50" /></div>'; cat sast_scan.html; } > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
       
-      - name: Upload all artifacts
+      - name: Upload SAST Scan Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: all-artifacts
+          name: sast_scan_output
           path: |
             sast_scan.sarif
             sast_scan.html
-            # Add other artifacts here separated by a newline
-            detect_secrets_output.txt
 
   pre_commit_hook:
     name: Pre-commit Hook
@@ -86,3 +85,9 @@ jobs:
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}
+      
+      - name: Upload Pre-commit Hook Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: pre_commit_hook_output
+          path: <path-to-pre-commit-hook-results>
