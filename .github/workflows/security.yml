@@ -38,6 +38,30 @@ jobs:
           name: secret_scan_output
           path: detect_secrets_output.txt
 
+  bandit:
+    name: Bandit Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create virtualenv
+        run: |
+          virtualenv bandit-env
+          source bandit-env/bin/activate
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit Scan
+        run: bandit -r > bandit_scan_output.txt
+
+      - name: Upload Bandit Scan Output
+        uses: actions/upload-artifact@v2
+        with:
+          name: bandit_scan_output
+          path: bandit_scan_output.txt
+
   sast:
     name: Semgrep SAST Scan
     runs-on: ubuntu-latest
@@ -70,17 +94,3 @@ jobs:
           path: |
             sast_scan.sarif
             sast_scan.html
-
-  pre_commit_hook:
-    name: Pre-commit Hook
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set PY environment variable
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}
