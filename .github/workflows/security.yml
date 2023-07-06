@@ -81,13 +81,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Set PY environment variable
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Install pre-commit
         run: pip install pre-commit
       
       - name: Configure pre-commit
         run: pre-commit sample-config > .pre-commit-config.yaml
 
-      - name: Install pre-commit hooks
+      - name: Install pre-commithooks
         run: pre-commit install
 
       - name: Run pre-commit hooks
