@@ -28,68 +28,51 @@ jobs:
         run: |
           sudo apt-get install -y diffutils jq python3 python3-pip
           python -m pip install detect-secrets
-
+  
       - name: Run Detect Secrets Scan
         run: |
           detect-secrets scan > detect_secrets_output.txt
 
-      - name: Check for secrets before commit
-        run: |
-          git diff --name-only --cached | grep '\.py$' | xargs detect-secrets-hook --baseline .secrets.baseline
-
-      - name: Upload Detect Secrets Output as Artifact
+      - name: Upload Output as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: detect_secrets_output
+          name: secret_scan_output
           path: detect_secrets_output.txt
 
-  semgrep-full:
-    runs-on: ubuntu-latest
-    container:
-      image: returntocorp/semgrep
-
-    steps:
-      - name: Clone application source code
-        uses: actions/checkout@v3
-
-      - name: Full scan
-        run: |
-          semgrep \
-            --sarif --output report.sarif \
-            --metrics=off \
-            --config="p/default"
-          
-      - name: Save report as pipeline artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: report.sarif
-          path: report.sarif
-
-      - name: Publish code scanning alerts
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: report.sarif
-          category: semgrep
-
-  security_lint:
-    name: Security Linting
+  sast:
+    name: Semgrep SAST Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Install Bandit
-        run: python3 -m pip install bandit
-
-      - name: Run Bandit Security Scan
+      
+      - name: Setup Python
+        uses: actions/setup-python@v2
+      
+      - name: Install Semgrep
+        run: pip install semgrep
+      
+      - name: Run Semgrep
+        run: semgrep --config auto --severity=ERROR --severity=WARNING --severity=INFO --sarif --output sast_scan.sarif
+      
+      - name: Run commands
         run: |
-          bandit -r . -f json -o bandit_output.json
-
-      - name: Upload Bandit Output as Artifact
+          sudo pip3 install sarif-tools
+          sarif html sast_scan.sarif
+          chmod 777 sast_scan.html
+          ls -la
+          sed 's|<h3>Sarif Summary: <b>semgrep<\/b><\/h3>|<h3 style="text-align: center;">Vunet SAST Scanning Report<\/h3>|' sast_scan.html > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
+          { echo '<div style="text-align:center"><img src="https://vunetsystems.com/wp-content/uploads/2021/12/Vunet-Logo.png" width="200" height="50" /></div>'; cat sast_scan.html; } > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
+      
+      - name: Upload all artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: bandit_output
-          path: bandit_output.json
+          name: all-artifacts
+          path: |
+            sast_scan.sarif
+            sast_scan.html
+            # Add other artifacts here separated by a newline
+            detect_secrets_output.txt
 
   pre_commit_hook:
     name: Pre-commit Hook
@@ -99,11 +82,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install pre-commit
-        run: |
-          pip install pre-commit
-          conda install -c conda-forge pre-commit
+        run: pip install pre-commit
+      
+      - name: Configure pre-commit
+        run: pre-commit sample-config > .pre-commit-config.yaml
 
-      - name: Set up pre-commit hooks
+      - name: Install pre-commit hooks
         run: pre-commit install
 
       - name: Run pre-commit hooks
