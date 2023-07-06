@@ -5,23 +5,27 @@ on:
     branches: [master]
 
 jobs:
-  bandit:
-    name: Bandit Scan
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ '2.7.17', '3.6.10' ]
+    name: Python ${{ matrix.python-version }} ${{ matrix.os }} 
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install bandit
-      - name: Run Bandit
-        run: |
-          bandit -r . -ll -f html -o bandit_report.html
-          cat bandit_report.html # Print report to console     
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Bandit Report
-          path: bandit_report.html
+    - uses: actions/checkout@v2
+
+    - name: Security check - Bandit
+      uses: ./
+      with:
+        python_version: ${{ matrix.python-version }}
+        project_path: .
+        ignore_failure: true
+
+    - name: Security check report artifacts
+      uses: actions/upload-artifact@v1
+      # if: failure()
+      with:
+        name: Security report
+        path: output/security_report.txt
