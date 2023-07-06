@@ -1,0 +1,70 @@
+name: Combined Scan
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+
+jobs:
+  secret_scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y diffutils jq python3 python3-pip
+          python -m pip install detect-secrets
+  
+      - name: Run Detect Secrets Scan
+        run: |
+          detect-secrets scan --json > detect_secrets_output.json
+
+      - name: Upload Output as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: secret_scan_output
+          path: detect_secrets_output.json
+   
+
+  semgrep-full:
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+
+    steps:
+      - name: Clone application source code
+        uses: actions/checkout@v3
+
+      - name: Full scan
+        run: |
+          semgrep \
+            --sarif --output report.sarif \
+            --metrics=off \
+            --config="p/default"
+          sarif2json report.sarif > report.json
+
+      - name: Save report as pipeline artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: report.json
+          path: report.json
+
+      - name: Publish code scanning alerts
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: report.sarif
+          category: semgrep
