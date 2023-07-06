@@ -1,4 +1,4 @@
-name: Combined Scan
+name: Security Scan
 
 on:
   push:
@@ -28,47 +28,65 @@ jobs:
         run: |
           sudo apt-get install -y diffutils jq python3 python3-pip
           python -m pip install detect-secrets
-  
+
       - name: Run Detect Secrets Scan
         run: |
           detect-secrets scan > detect_secrets_output.txt
 
-      - name: Upload Output as Artifact
+      - name: Check for secrets before commit
+        run: |
+          git diff --name-only --cached | grep '\.py$' | xargs detect-secrets-hook --baseline .secrets.baseline
+
+      - name: Upload Detect Secrets Output as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: secret_scan_output
+          name: detect_secrets_output
           path: detect_secrets_output.txt
-   
 
   semgrep-full:
-      runs-on: ubuntu-latest
-      container:
-        image: returntocorp/semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
 
-      steps:
+    steps:
+      - name: Clone application source code
+        uses: actions/checkout@v3
 
-        - name: clone application source code
-          uses: actions/checkout@v3
+      - name: Full scan
+        run: |
+          semgrep \
+            --sarif --output report.sarif \
+            --metrics=off \
+            --config="p/default"
+          
+      - name: Save report as pipeline artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: report.sarif
+          path: report.sarif
 
-        - name: full scan
-          run: |
-            semgrep \
-              --sarif --output report.sarif \
-              --metrics=off \
-              --config="p/default"
-        
-        
-        - name: save report as pipeline artifact
-          uses: actions/upload-artifact@v3
-          with:
-            name: report.sarif
-            path: report.sarif
+      - name: Publish code scanning alerts
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: report.sarif
+          category: semgrep
 
-        - name: publish code scanning alerts
-          uses: github/codeql-action/upload-sarif@v2
-          with:
-            sarif_file: report.sarif
-            category: semgrep
+  security_lint:
+    name: Security Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
+      - name: Install Bandit
+        run: python3 -m pip install bandit
 
-      
+      - name: Run Bandit Security Scan
+        run: |
+          bandit -r . -f json -o bandit_output.json
+
+      - name: Upload Bandit Output as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bandit_output
+          path: bandit_output.json
