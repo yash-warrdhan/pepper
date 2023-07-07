@@ -64,6 +64,27 @@ jobs:
         with:
           name: bandit_scan_output
           path: bandit_scan_output.txt
+          
+  gatekeeper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Install Gatekeeper
+        run: |
+          sudo apt-get update && sudo apt-get install -y gatekeeper
+
+      - name: Run Gatekeeper
+        run: |
+          gatekeeper check
+
+      - name: Fail if Gatekeeper fails
+        if: ${{ failure() }}
+        run: |
+          echo "Gatekeeper failed"
+          exit 1
 
   sast:
     name: Semgrep SAST Scan
@@ -97,3 +118,5 @@ jobs:
           path: |
             sast_scan.sarif
             sast_scan.html
+      
+      
