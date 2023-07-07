@@ -1,29 +1,24 @@
-name: Security check - Bandit
-
+name: Bandit
 on:
+  pull_request:
   push:
     branches:
-      - master
+      - master #dev, release, etc.
+  release:
+    types:
+      - created
 
 jobs:
-  build:
+  bandit:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
-
-      - name: Install Bandit
-        run: |
-          sudo apt-get update
-          sudo apt-get install bandit
-
-      - name: Run Bandit
-        run: |
-          bandit -r . --format=json --output=/home/runner/work/pepper/pepper/security_report.json
-          cat security_report.json
-
-      - name: Upload Bandit report
-        uses: actions/upload-artifact@v1
         with:
-          name: Security report
-          path: /home/runner/work/pepper/pepper/security_report.json
+          fetch-depth: 0 #get fuller history
+      - name: Run Bandit Report
+        uses: libertyy/py3-bandit-check@v2
+      - name: Save Bandit txt Report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{ RUNNER.temp }}/_github_home/bandit_report.out
