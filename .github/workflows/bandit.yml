@@ -17,10 +17,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install bandit
 
-      - name: Fix security issue
-        run: |
-          sed -i 's/os\.system/subprocess\.run/g' main.py
-
       - name: Run Bandit
         run: |
           bandit -r . --format=txt --output=/home/runner/work/pepper/pepper/security_report.txt
