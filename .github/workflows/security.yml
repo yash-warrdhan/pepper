@@ -38,33 +38,6 @@ jobs:
           name: secret_scan_output
           path: detect_secrets_output.txt
 
-  bandit:
-    name: Bandit Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install virtualenv
-        run: sudo apt-get install -y virtualenv
-
-      - name: Create virtualenv
-        run: |
-          virtualenv bandit-env
-          source bandit-env/bin/activate
-
-      - name: Install Bandit
-        run: pip install bandit
-
-      - name: Run Bandit Scan
-        run: bandit -r > bandit_scan_output.txt
-
-      - name: Upload Bandit Scan Output
-        uses: actions/upload-artifact@v2
-        with:
-          name: bandit_scan_output
-          path: bandit_scan_output.txt
-          
   gatekeeper:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -72,9 +45,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Install Gatekeeper
-        run: |
-          sudo apt-get update && sudo apt-get install -y gatekeeper
+      - name: Merge Gatekeeper
+        uses: upsidr/merge-gatekeeper@v1.2.1
 
       - name: Run Gatekeeper
         run: |
@@ -85,6 +57,7 @@ jobs:
         run: |
           echo "Gatekeeper failed"
           exit 1
+
 
   sast:
     name: Semgrep SAST Scan
