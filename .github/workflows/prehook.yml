@@ -3,10 +3,10 @@ name: Security Check
 on:
   push:
     branches:
-      - vugrafana
+      - test
   pull_request:
     branches:
-      - vugrafana
+      - test
   workflow_dispatch:
 
 jobs:
