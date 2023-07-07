@@ -19,11 +19,10 @@ jobs:
 
       - name: Run Bandit
         run: |
-          pwd
-          bandit -r . --format=txt --output=/tmp/security_report.txt
+          bandit -r . --format=txt --output=/home/runner/work/pepper/pepper/security_report.txt
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v1
         with:
           name: Security report
-          path: /tmp/security_report.txt
+          path: /home/runner/work/pepper/pepper/security_report.txt
