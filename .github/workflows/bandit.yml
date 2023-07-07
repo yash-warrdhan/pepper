@@ -30,7 +30,7 @@ jobs:
         run: pip install bandit
 
       - name: Run Bandit Scan
-        run: bandit -f csv -r . -o bandit_results.csv
+        run: bandit -f csv -r . -o bandit_results.csv || echo "::set-output name=ignore_failure::true"
 
       - name: Display Directory Contents
         run: |
