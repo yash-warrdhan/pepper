@@ -19,6 +19,7 @@ jobs:
 
       - name: Run Bandit
         run: |
+          pwd
           bandit -r . --format=txt --output=/tmp/security_report.txt
 
       - name: Upload Bandit report
