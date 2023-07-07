@@ -1,31 +1,28 @@
-name: Bandit Scan
+name: Security check - Bandit
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, macos-latest ]
-        python-version: [ 3.7 ]
-    name: Python ${{ matrix.python-version }} ${{ matrix.os }} 
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Security check - Bandit
-      uses: ./
-      with:
-        python_version: ${{ matrix.python-version }}
-        project_path: .
-        ignore_failure: true
+      - name: Install Bandit
+        run: |
+          sudo apt-get update
+          sudo apt-get install bandit
 
-    - name: Security check report artifacts
-      uses: actions/upload-artifact@v1
-      # if: failure()
-      with:
-        name: Security report
-        path: output/security_report.txt
+      - name: Run Bandit
+        run: |
+          bandit -r . --format=txt --output=output/security_report.txt
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v1
+        with:
+          name: Security report
+          path: output/security_report.txt
