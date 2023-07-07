@@ -20,6 +20,7 @@ jobs:
       - name: Run Bandit
         run: |
           bandit -r . --format=txt --output=/home/runner/work/pepper/pepper/security_report.txt
+          cat security_report.txt
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v1
