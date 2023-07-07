@@ -1,4 +1,4 @@
-name: Security Check - Bandit
+name: Bandit Scan
 
 on:
   push:
@@ -9,28 +9,36 @@ on:
       - master
 
 jobs:
-  build:
+  bandit_scan:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-    name: Python ${{ matrix.os }} 
 
     steps:
-    - uses: actions/checkout@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-    - name: Security check - Bandit
-      uses: ioggstream/bandit-report-artifacts@v0.0.2
-      with:
-        project_path: .
-        ignore_failure: true
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
 
-    - name: Convert report to CSV
-      run: |
-        cat output/security_report.txt | awk 'BEGIN{FS=":";OFS=","} {print $1, $2, $3, $4, $5}' > output/security_report.csv
+      - name: Create and activate virtual environment
+        run: |
+          python3 -m venv bandit-env
+          source bandit-env/bin/activate
 
-    - name: Security check report artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: Security report
-        path: output/security_report.csv
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit Scan
+        run: bandit -f csv -r . -o bandit_results.csv
+
+      - name: Display Directory Contents
+        run: |
+          pwd
+          ls
+
+      - name: Upload Bandit Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: Bandit Scan Results
+          path: bandit_results.csv
