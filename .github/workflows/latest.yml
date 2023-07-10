@@ -1,5 +1,6 @@
 name: Security Check
 
+
 on:
   push:
     branches:
@@ -8,7 +9,40 @@ on:
 
 # Secret scan to detect scan in code using detect secret.
 jobs:
-  
+  secret_scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y diffutils jq python3 python3-pip
+          python -m pip install detect-secrets
+
+      - name: Run Detect Secrets Scan
+        run: |
+          detect-secrets scan --all-files >> detect_secrets_output.txt
+
+      - name: Upload Output as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: secret_scan_output
+          path: detect_secrets_output.txt
+
+      - name: Check for secrets
+        run: |
+          if grep -qE "(ArtifactoryDetector|AWSKeyDetector|AzureStorageKeyDetector|Base64HighEntropyString|BasicAuthDetector|CloudantDetector|DiscordBotTokenDetector|GitHubTokenDetector|HexHighEntropyString|IbmCloudIamDetector|IbmCosHmacDetector|JwtTokenDetector|KeywordDetector|MailchimpDetector|NpmDetector|PrivateKeyDetector|SendGridDetector|SlackDetector|SoftlayerDetector|SquareOAuthDetector|StripeDetector|TwilioKeyDetector)" detect_secrets_output.txt; then
+            echo "Secrets found. Please review the code for secrets. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< detect_secrets_output.txt)"
+            exit 0
+          fi
+
 # OWASP Dependency Check
   owasp_dependency_check:
     name: OWASP Dependency Check
@@ -17,11 +51,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: OWASP Dependency Check
-        uses: dependency-check/dependency-check-action@v2
-        with:
-          format: 'ALL'
-          output-directory: 'dependency_check_output'
+      - name: Install OWASP Dependency-Check
+        run: |
+          sudo apt-get install -y curl
+          curl -L -o dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v6.3.1/dependency-check-6.3.1-release.zip
+          unzip dependency-check.zip
+
+      - name: Run OWASP Dependency Check
+        run: |
+          ./dependency-check/bin/dependency-check.sh --scan . --format XML --out dependency_check_output
 
       - name: Upload Output as Artifact
         uses: actions/upload-artifact@v2
