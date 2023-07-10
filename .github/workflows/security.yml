@@ -1,16 +1,12 @@
-name: Combined Scan
+name: Security Check
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
     branches:
       - master
-  schedule:
-    - cron: "30 23 * * *"
   workflow_dispatch:
 
+# Secret scan to detect scan in code using detect secret.
 jobs:
   secret_scan:
     name: Secret Scan
@@ -28,68 +24,78 @@ jobs:
         run: |
           sudo apt-get install -y diffutils jq python3 python3-pip
           python -m pip install detect-secrets
-  
+
       - name: Run Detect Secrets Scan
         run: |
-          detect-secrets scan > detect_secrets_output.txt
-      - name: Upload Secret Scan Output
+          detect-secrets scan --all-files >> detect_secrets_output.txt
+
+      - name: Upload Output as Artifact
         uses: actions/upload-artifact@v2
         with:
           name: secret_scan_output
           path: detect_secrets_output.txt
 
-  gatekeeper:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Merge Gatekeeper
-        uses: upsidr/merge-gatekeeper@v1.2.1
-
-      - name: Run Gatekeeper
+      - name: Check for secrets
         run: |
-          gatekeeper check
+          if grep -qE "(ArtifactoryDetector|AWSKeyDetector|AzureStorageKeyDetector|Base64HighEntropyString|BasicAuthDetector|CloudantDetector|DiscordBotTokenDetector|GitHubTokenDetector|HexHighEntropyString|IbmCloudIamDetector|IbmCosHmacDetector|JwtTokenDetector|KeywordDetector|MailchimpDetector|NpmDetector|PrivateKeyDetector|SendGridDetector|SlackDetector|SoftlayerDetector|SquareOAuthDetector|StripeDetector|TwilioKeyDetector)" detect_secrets_output.txt; then
+            echo "Secrets found. Please review the code for secrets. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< detect_secrets_output.txt)"
+            exit 1
+          fi
 
-      - name: Fail if Gatekeeper fails
-        if: ${{ failure() }}
-        run: |
-          echo "Gatekeeper failed"
-          exit 1
-
-
-  sast:
-    name: Semgrep SAST Scan
+# OWASP Dependency Check
+  owasp_dependency_check:
+    name: OWASP Dependency Check
+    needs: secret_scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
-      - name: Setup Python
-        uses: actions/setup-python@v2
-      
-      - name: Install Semgrep
-        run: pip install semgrep
-      
-      - name: Run Semgrep
-        run: semgrep --config auto --severity=ERROR --severity=WARNING --severity=INFO --sarif --output sast_scan.sarif
-      
-      - name: Run commands
-        run: |
-          sudo pip3 install sarif-tools
-          sarif html sast_scan.sarif
-          chmod 777 sast_scan.html
-          ls -la
-          sed 's|<h3>Sarif Summary: <b>semgrep<\/b><\/h3>|<h3 style="text-align: center;">Vunet SAST Scanning Report<\/h3>|' sast_scan.html > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
-          { echo '<div style="text-align:center"><img src="https://vunetsystems.com/wp-content/uploads/2021/12/Vunet-Logo.png" width="200" height="50" /></div>'; cat sast_scan.html; } > tmp_report_html.html && mv tmp_report_html.html sast_scan.html
-      
-      - name: Upload SAST Scan Results
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/dependency-check-action@v2
+        with:
+          format: 'ALL'
+          output-directory: 'dependency_check_output'
+
+      - name: Upload Output as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: sast_scan_results
-          path: |
-            sast_scan.sarif
-            sast_scan.html
-      
-      
+          name: dependency_check_output
+          path: dependency_check_output
+
+      - name: Check for vulnerabilities
+        run: |
+          if grep -q "CRITICAL" dependency_check_output/dependency-check-report.xml; then
+            echo "Vulnerabilities found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/dependency_check_output"
+            exit 1
+          fi
+
+# Bandit for Source Code Review
+  Bandit:
+    name: Bandit Scan
+    needs: owasp_dependency_check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Security check - Bandit
+        uses: ioggstream/bandit-report-artifacts@v0.0.2
+        with:
+          project_path: .
+          ignore_failure: true
+
+      - name: Security check report artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Security report
+          path: output/security_report.txt
+
+      - name: Check for security risks
+        run: |
+          if grep -q "HIGH" output/security_report.txt; then
+            echo "Security risks found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.txt)"
+            exit 1
+          fi
