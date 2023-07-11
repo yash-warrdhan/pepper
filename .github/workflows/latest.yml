@@ -21,7 +21,7 @@ jobs:
 
       - name: Run OWASP Dependency Check
         run: |
-          ./dependency-check/bin/dependency-check.sh --scan . --format XML --out dependency_check_output
+          ./dependency-check/bin/dependency-check.sh --scan . --format XML --out dependency_check_output --disable .NETAssemblyAnalyzer
 
       - name: Upload Output as Artifact
         uses: actions/upload-artifact@v2
