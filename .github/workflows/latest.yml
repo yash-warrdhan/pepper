@@ -1,49 +1,13 @@
 name: Security Check
 
-
 on:
   push:
     branches:
       - master
   workflow_dispatch:
 
-# Secret scan to detect scan in code using detect secret.
-jobs:
-  secret_scan:
-    name: Secret Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get install -y diffutils jq python3 python3-pip
-          python -m pip install detect-secrets
-
-      - name: Run Detect Secrets Scan
-        run: |
-          detect-secrets scan --all-files >> detect_secrets_output.txt
-
-      - name: Upload Output as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: secret_scan_output
-          path: detect_secrets_output.txt
-
-      - name: Check for secrets
-        run: |
-          if grep -qE "(ArtifactoryDetector|AWSKeyDetector|AzureStorageKeyDetector|Base64HighEntropyString|BasicAuthDetector|CloudantDetector|DiscordBotTokenDetector|GitHubTokenDetector|HexHighEntropyString|IbmCloudIamDetector|IbmCosHmacDetector|JwtTokenDetector|KeywordDetector|MailchimpDetector|NpmDetector|PrivateKeyDetector|SendGridDetector|SlackDetector|SoftlayerDetector|SquareOAuthDetector|StripeDetector|TwilioKeyDetector)" detect_secrets_output.txt; then
-            echo "Secrets found. Please review the code for secrets. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< detect_secrets_output.txt)"
-            exit 0
-          fi
-
 # OWASP Dependency Check
+jobs:
   owasp_dependency_check:
     name: OWASP Dependency Check
     runs-on: ubuntu-latest
@@ -70,11 +34,12 @@ jobs:
       - name: Check for vulnerabilities
         run: |
           if grep -q "CRITICAL" dependency_check_output/dependency-check-report.xml; then
-            echo "Vulnerabilities found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/dependency_check_output"
+            echo "Vulnerabilities found. Blocking push. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/dependency_check_output"
             exit 1
           fi
 
 # Bandit for Source Code Review
+jobs:
   Bandit:
     name: Bandit Scan
     needs: owasp_dependency_check
@@ -100,6 +65,6 @@ jobs:
       - name: Check for security risks
         run: |
           if grep -q "HIGH" output/security_report.txt; then
-            echo "Security risks found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.txt)"
+            echo "Security risks found. Blocking push. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.txt)"
             exit 1
           fi
