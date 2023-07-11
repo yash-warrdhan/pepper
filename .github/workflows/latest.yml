@@ -37,7 +37,6 @@ jobs:
           fi
 
 # Bandit for Source Code Review
-jobs:
   Bandit:
     name: Bandit Scan
     needs: owasp_dependency_check
