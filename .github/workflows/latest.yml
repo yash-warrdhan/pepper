@@ -2,8 +2,6 @@ name: Security Check
 
 on:
   push:
-    branches:
-      - master
   workflow_dispatch:
 
 # OWASP Dependency Check
