@@ -1,44 +1,65 @@
 name: Bandit Scan
 
-on:
+on: 
   push:
     branches:
       - master
 
 jobs:
-  build:
+  Bandit:
+    name: Bandit Scan
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Create output directory
-        run: mkdir -p output
+      - uses: actions/checkout@v2
 
       - name: Security check - Bandit
         uses: ioggstream/bandit-report-artifacts@v0.0.2
         with:
           project_path: .
           ignore_failure: true
-          output_format: json  # Specify the output format as JSON
 
-      - name: Save security report
+      - name: Security check report artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Security report
+          path: output/security_report.txt
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
         run: |
-          echo -n "${{ steps.bandit.outputs.report }}" > output/security_report.json
+          python -m pip install --upgrade pip
+          pip install tabulate
 
-      - name: Display security report
-        run: cat output/security_report.json
+      - name: Run Python script
+        run: |
+          import csv
+          from tabulate import tabulate
+
+          def parse_file(file_path):
+              with open(file_path, 'r') as file:
+                  reader = csv.DictReader(file, fieldnames=["Issue", "Severity", "CWE", "Location"])
+                  data = [row for row in reader]
+              return data
+
+          def main():
+              file_path = 'output/security_report.txt'
+              data = parse_file(file_path)
+              print(tabulate(data, headers="keys", tablefmt="pipe"))
+
+          if __name__ == "__main__":
+              main()
+        shell: python
 
       - name: Check for security risks
         run: |
-          if grep -q "HIGH" output/security_report.json; then
-            echo "Security risks found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.json)"
+          if grep -q "HIGH" output/security_report.txt; then
+            echo "Security risks found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.txt)"
             exit 1
           fi
-
-      - name: Upload security report artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Security report
-          path: output/security_report.json
