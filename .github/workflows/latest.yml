@@ -56,6 +56,8 @@ jobs:
                           data.append(issue_dict)
                           issue_dict = {}
               data.sort(key=lambda x: x.get('Severity Ranking', 4))
+              for issue in data:
+                  del issue['Severity Ranking']
               return data
 
           def main():
