@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      
 
 jobs:
   Bandit:
@@ -52,18 +51,27 @@ jobs:
                       if line.startswith('Issue:'):
                           issue_dict['Issue'] = line.split(':', 1)[1].strip()
                       elif line.startswith('Severity:'):
-                          issue_dict['Severity'] = line.split(':', 1)[1].strip()
+                          severity = line.split(':', 1)[1].strip()
+                          severity = severity.split(' ', 1)[0]  # Remove the Confidence information
+                          issue_dict['Severity'] = severity
                       elif line.startswith('CWE:'):
                           issue_dict['CWE'] = line.split(':', 1)[1].strip()
                       elif line.startswith('Location:'):
                           issue_dict['Location'] = line.split(':', 1)[1].strip()
                           data.append(issue_dict)
                           issue_dict = {}
+
+              # Sort the data by Severity
+              severity_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+              data.sort(key=lambda x: severity_order.get(x['Severity'], 3))
               return data
 
           def main():
               file_path = 'output/security_report.txt'
               data = parse_file(file_path)
+              # Add a Serial Number column
+              for i, issue in enumerate(data, start=1):
+                  issue['#'] = i
               print(tabulate(data, headers="keys", tablefmt="pipe"))
 
           if __name__ == "__main__":
