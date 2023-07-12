@@ -21,12 +21,6 @@ jobs:
           project_path: .
           ignore_failure: true
 
-      - name: Security check report artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: Security report
-          path: output/security_report.txt
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -45,42 +39,36 @@ jobs:
           def parse_file(file_path):
               data = []
               issue_dict = {}
+              severity_ranking = {'High': 1, 'Medium': 2, 'Low': 3}
               with open(file_path, 'r') as file:
                   for line in file:
                       line = line.strip()
                       if line.startswith('Issue:'):
                           issue_dict['Issue'] = line.split(':', 1)[1].strip()
                       elif line.startswith('Severity:'):
-                          severity = line.split(':', 1)[1].strip()
-                          severity = severity.split(' ', 1)[0]  # Remove the Confidence information
-                          issue_dict['Severity'] = severity
+                          severity_confidence = line.split(':', 1)[1].strip().split()
+                          issue_dict['Severity'] = severity_confidence[0]
+                          issue_dict['Severity Ranking'] = severity_ranking.get(issue_dict['Severity'], 4)
                       elif line.startswith('CWE:'):
                           issue_dict['CWE'] = line.split(':', 1)[1].strip()
                       elif line.startswith('Location:'):
                           issue_dict['Location'] = line.split(':', 1)[1].strip()
                           data.append(issue_dict)
                           issue_dict = {}
-
-              # Sort the data by Severity
-              severity_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
-              data.sort(key=lambda x: severity_order.get(x['Severity'], 3))
+              data.sort(key=lambda x: x.get('Severity Ranking', 4))
               return data
 
           def main():
               file_path = 'output/security_report.txt'
               data = parse_file(file_path)
-              # Add a Serial Number column
-              for i, issue in enumerate(data, start=1):
-                  issue['#'] = i
-              print(tabulate(data, headers="keys", tablefmt="pipe"))
+              for i, row in enumerate(data, start=1):
+                  row['S. No.'] = i
+              headers = ['S. No.', 'Issue', 'Severity', 'CWE', 'Location']
+              print(tabulate(data, headers=headers, tablefmt="pipe"))
+              if any(issue['Severity'] == 'High' for issue in data):
+                  print("Check the code for the correction of security risk.")
+                  os._exit(1)
 
           if __name__ == "__main__":
               main()
         shell: python
-
-      - name: Check for security risks
-        run: |
-          if grep -q "HIGH" output/security_report.txt; then
-            echo "Security risks found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.txt)"
-            exit 1
-          fi
