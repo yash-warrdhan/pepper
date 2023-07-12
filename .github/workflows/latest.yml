@@ -7,7 +7,6 @@ on:
 jobs:
   Bandit:
     name: Bandit Scan
-    needs: owasp_dependency_check
     runs-on: ubuntu-latest
     strategy:
       matrix:
