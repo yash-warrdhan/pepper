@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      
 
 jobs:
   Bandit:
@@ -39,13 +40,25 @@ jobs:
 
       - name: Run Python script
         run: |
-          import csv
+          import os
           from tabulate import tabulate
 
           def parse_file(file_path):
+              data = []
+              issue_dict = {}
               with open(file_path, 'r') as file:
-                  reader = csv.DictReader(file, fieldnames=["Issue", "Severity", "CWE", "Location"])
-                  data = [row for row in reader]
+                  for line in file:
+                      line = line.strip()
+                      if line.startswith('Issue:'):
+                          issue_dict['Issue'] = line.split(':', 1)[1].strip()
+                      elif line.startswith('Severity:'):
+                          issue_dict['Severity'] = line.split(':', 1)[1].strip()
+                      elif line.startswith('CWE:'):
+                          issue_dict['CWE'] = line.split(':', 1)[1].strip()
+                      elif line.startswith('Location:'):
+                          issue_dict['Location'] = line.split(':', 1)[1].strip()
+                          data.append(issue_dict)
+                          issue_dict = {}
               return data
 
           def main():
