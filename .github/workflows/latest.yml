@@ -47,7 +47,7 @@ jobs:
                           issue_dict['Issue'] = line.split(':', 1)[1].strip()
                           issue_detail_flag = True
                       elif line.startswith('Severity:'):
-                          issue_dict['Issue Details'] = issue_dict['Issue']
+                          issue_dict['Issue Details'] = issue_dict.get('Issue', '')
                           severity_confidence = line.split(':', 1)[1].strip().split()
                           issue_dict['Severity'] = severity_confidence[0]
                           issue_dict['Severity Ranking'] = severity_ranking.get(issue_dict['Severity'], 4)
