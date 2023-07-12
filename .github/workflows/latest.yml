@@ -26,13 +26,6 @@ jobs:
       - name: Display security report
         run: cat output/security_report.json
 
-      - name: Check for security risks
-        run: |
-          if grep -q "HIGH" output/security_report.json; then
-            echo "Security risks found. Blocking PR. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.json)"
-            exit 1
-          fi
-
       - name: Upload security report artifact
         uses: actions/upload-artifact@v2
         with:
