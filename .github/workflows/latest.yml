@@ -31,43 +31,48 @@ jobs:
           python -m pip install --upgrade pip
           pip install tabulate
 
-      - name: Extract Bandit Issues
-        id: extract-issues
-        run: |
-          import re
-
-          with open('output/security_report.txt', 'r') as report_file:
-              report_content = report_file.read()
-
-          issues = re.findall(r'Issue: \[.*?\]\n(.*?)[\n\n]', report_content, re.DOTALL)
-
-          with open('output/issues.txt', 'w') as issues_file:
-              for issue in issues:
-                  issues_file.write(issue.strip() + '\n---\n')
-
-      - name: Display Issues
+      - name: Run Python script
         run: |
           import os
           from tabulate import tabulate
-
-          with open('output/issues.txt', 'r') as issues_file:
-              issues_content = issues_file.read()
-
-          issues_list = issues_content.strip().split('\n---\n')
-
-          data = []
-          for issue in issues_list:
-              issue_data = {}
-              lines = issue.split('\n')
-              for line in lines:
-                  key, value = line.strip().split(': ', 1)
-                  issue_data[key] = value
-              data.append(issue_data)
-
-          headers = list(data[0].keys()) if data else []
-
-          print(tabulate(data, headers=headers, tablefmt="pipe"))
-
-          if any(issue['Severity'] == 'High' for issue in data):
-              print("Check the code for the correction of security risk.")
-              os._exit(1)
+          def parse_file(file_path):
+              data = []
+              issue_dict = {}
+              severity_ranking = {'High': 1, 'Medium': 2, 'Low': 3}
+              issue_detail_flag = False
+              with open(file_path, 'r') as file:
+                  for line in file:
+                      line = line.strip()
+                      if line.startswith('Issue:'):
+                          issue_dict['Issue'] = line.split(':', 1)[1].strip()
+                          issue_detail_flag = True
+                      elif line.startswith('Severity:'):
+                          issue_dict['Issue Details'] = issue_dict['Issue']
+                          severity_confidence = line.split(':', 1)[1].strip().split()
+                          issue_dict['Severity'] = severity_confidence[0]
+                          issue_dict['Severity Ranking'] = severity_ranking.get(issue_dict['Severity'], 4)
+                          issue_detail_flag = False
+                      elif issue_detail_flag:
+                          issue_dict['Issue'] += ' ' + line.strip()
+                      elif line.startswith('CWE:'):
+                          issue_dict['CWE'] = line.split(':', 1)[1].strip()
+                      elif line.startswith('Location:'):
+                          issue_dict['Location'] = line.split(':', 1)[1].strip()
+                          data.append(issue_dict)
+                          issue_dict = {}
+              data.sort(key=lambda x: x.get('Severity Ranking', 4))
+              for issue in data:
+                  del issue['Severity Ranking']
+              return data
+          def main():
+              file_path = 'output/security_report.txt'
+              data = parse_file(file_path)
+              for i, row in enumerate(data, start=1):
+                  row['S. No.'] = i
+              print(tabulate(data, headers="keys", tablefmt="pipe"))
+              if any(issue['Severity'] == 'High' for issue in data):
+                  print("Check the code for the correction of security risk.")
+                  os._exit(1)
+          if __name__ == "__main__":
+              main()
+        shell: python
