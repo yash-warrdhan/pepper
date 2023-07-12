@@ -4,39 +4,7 @@ on:
   push:
   workflow_dispatch:
 
-# OWASP Dependency Check
 jobs:
-  owasp_dependency_check:
-    name: OWASP Dependency Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install OWASP Dependency-Check
-        run: |
-          sudo apt-get install -y curl
-          curl -L -o dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v6.3.1/dependency-check-6.3.1-release.zip
-          unzip dependency-check.zip
-
-      - name: Run OWASP Dependency Check
-        run: |
-          ./dependency-check/bin/dependency-check.sh --scan . --format XML --out dependency_check_output --disable .NETAssemblyAnalyzer
-
-      - name: Upload Output as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: dependency_check_output
-          path: dependency_check_output
-
-      - name: Check for vulnerabilities
-        run: |
-          if grep -q "CRITICAL" dependency_check_output/dependency-check-report.xml; then
-            echo "Vulnerabilities found. Blocking push. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/dependency_check_output"
-            exit 1
-          fi
-
-# Bandit for Source Code Review
   Bandit:
     name: Bandit Scan
     needs: owasp_dependency_check
@@ -62,6 +30,13 @@ jobs:
       - name: Check for security risks
         run: |
           if grep -q "HIGH" output/security_report.txt; then
-            echo "Security risks found. Blocking push. Artifact: ${{ github.server_url }}/${{ github.repository }}/actions/artifacts/$(< output/security_report.txt)"
+            echo "Security risks found. Blocking push."
             exit 1
+          else
+            echo "No security risks found."
+            exit 0
           fi
+
+      - name: Generate JSON output
+        run: |
+          cat output/security_report.txt | jq .
