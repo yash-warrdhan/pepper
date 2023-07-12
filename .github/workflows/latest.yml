@@ -23,35 +23,7 @@ jobs:
         run: |
           bandit -r . -ll -f json -o bandit_report.json || echo "::set-output name=bandit_failed::true"
           pwd
+          cat bandit_report.json 
 
-      - name: Parse Bandit Report
-        id: parse_report
-        if: steps.bandit.outputs.bandit_failed != 'true'
-        run: |
-          cat bandit_report.json | jq -c '.' > bandit_report_formatted.json || echo "::set-output name=parse_failed::true"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Bandit Report
-          path: bandit_report_formatted.json
-
-      - name: Show Bandit Report in Issue
-        if: steps.parse_report.outputs.parse_failed == 'true'
-        uses: actions/github-script@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const report = require('./bandit_report_formatted.json');
-            const commentBody = `**Bandit Scan Results:**
-
-            ${JSON.stringify(report, null, 2)}
-
-            ![Bandit Report](./bandit_report_formatted.json)`;
-
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: commentBody
-            })
+     
+         
