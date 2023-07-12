@@ -20,7 +20,8 @@ jobs:
       - name: Run Bandit
         id: bandit
         run: |
-          bandit -r . -ll --format json -o bandit_report.json | jq .
+          bandit -r . -f json -o bandit_report.json | jq '. | select(.severity == "MEDIUM")'
+
 
       - name: Check Bandit status
         if: ${{ steps.bandit.outputs.bandit_failed == 'true' }}
