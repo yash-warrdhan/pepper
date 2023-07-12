@@ -46,7 +46,8 @@ jobs:
                       if line.startswith('Issue:'):
                           if issue_dict:  # Save the previous issue before starting a new one
                               data.append(issue_dict)
-                          issue_dict = {'Issue': line.split(':', 1)[1].strip()}  # Create a new issue_dict with 'Issue' key
+                          issue_dict = {'Issue': ''}
+                          issue_dict['Issue'] = line.split(':', 1)[1].strip()  # Set the value for the 'Issue' key
                       elif line.startswith('Severity:'):
                           severity_confidence = line.split(':', 1)[1].strip().split()
                           issue_dict['Severity'] = severity_confidence[0]
