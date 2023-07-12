@@ -44,7 +44,9 @@ jobs:
                   for line in file:
                       line = line.strip()
                       if line.startswith('Issue:'):
-                          issue_dict['Issue'] = line.split(':', 1)[1].strip()
+                          if issue_dict:  # Save the previous issue before starting a new one
+                              data.append(issue_dict)
+                          issue_dict = {'Issue': line.split(':', 1)[1].strip()}  # Create a new issue_dict with 'Issue' key
                       elif line.startswith('Severity:'):
                           severity_confidence = line.split(':', 1)[1].strip().split()
                           issue_dict['Severity'] = severity_confidence[0]
@@ -53,8 +55,10 @@ jobs:
                           issue_dict['CWE'] = line.split(':', 1)[1].strip()
                       elif line.startswith('Location:'):
                           issue_dict['Location'] = line.split(':', 1)[1].strip()
-                          data.append(issue_dict)
-                          issue_dict = {}
+
+              if issue_dict:  # Save the last issue if it exists
+                  data.append(issue_dict)
+
               data.sort(key=lambda x: x.get('Severity Ranking', 4))
               for issue in data:
                   del issue['Severity Ranking']
