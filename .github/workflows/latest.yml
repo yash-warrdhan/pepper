@@ -24,7 +24,8 @@ jobs:
           output_format: json  # Specify the output format as JSON
 
       - name: Save security report
-        run: echo "${{ steps.bandit.outputs.report }}" > output/security_report.json
+        run: |
+          echo -n "${{ steps.bandit.outputs.report }}" > output/security_report.json
 
       - name: Display security report
         run: cat output/security_report.json
