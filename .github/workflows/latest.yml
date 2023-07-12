@@ -1,41 +1,27 @@
-name: Security Check
+name: Security check - Bandit CSNA
 
 on:
   push:
-  workflow_dispatch:
+    branches:
+      - master
 
 jobs:
-  Bandit:
-    name: Bandit Scan
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Security check - Bandit
-        uses: ioggstream/bandit-report-artifacts@v0.0.2
+      - name: Python security check using Bandit CSNA and output as JSON
+        uses: kmcquade/bandit-report-artifacts-json@0.0.1
         with:
+          python_version: 3.8.10
           project_path: .
-          ignore_failure: true
+          ignore_failure: false
 
       - name: Security check report artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
+        if: failure()
         with:
           name: Security report
-          path: output/security_report.txt
-
-      - name: Check for security risks
-        run: |
-          if grep -q "HIGH" output/security_report.txt; then
-            echo "Security risks found. Blocking push."
-            exit 1
-          else
-            echo "No security risks found."
-            exit 0
-          fi
-
-      - name: Generate JSON output
-        run: |
-          cat output/security_report.txt | jq -c .
+          path: output/.
