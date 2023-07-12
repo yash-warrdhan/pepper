@@ -38,4 +38,4 @@ jobs:
 
       - name: Generate JSON output
         run: |
-          cat output/security_report.txt | jq .
+          cat output/security_report.txt | jq -c .
