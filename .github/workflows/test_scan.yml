@@ -74,9 +74,11 @@ jobs:
           # Specify the table headers
           table_headers = ["Issue", "Severity", "CWE", "Location"]
 
-          # Print the table
-          print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
-
           # Check if any high severity issues were found
           if any(row[1] == 'High' for row in sorted_rows):
               raise Exception('Please check your code for the Security risk found.')
+          
+          # Print the table
+          print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
+          
+          python: shell
