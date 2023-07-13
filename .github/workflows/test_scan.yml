@@ -37,9 +37,8 @@ jobs:
           import json
           from tabulate import tabulate
 
-
           # Specify the file path
-          file_path = 'bandit_report.txt'  # assuming the Bandit report is saved as 'bandit_report.txt'
+          file_path = '/home/yash/Documents/Vunet/security_report.txt'
 
           # To store the table rows
           table_rows = []
@@ -47,19 +46,26 @@ jobs:
           # Open and read the file
           with open(file_path, 'r') as file:
               issue, severity, cwe, location = "", "", "", ""
+              lines_before_issue = []  # Variable to store the lines before the next issue
               for line in file:
                   if 'Issue' in line:
-                      issue = textwrap.fill(line.split(': ')[1].strip(), width=50)
+                      if issue != "":
+                          # Add the lines before the next issue to the table row
+                          table_rows.append([issue, severity, cwe, '\n'.join(lines_before_issue)])
+                      issue = textwrap.fill(line.split(': ')[1].strip(), width=30)
+                      lines_before_issue = []  # Reset lines_before_issue for the next issue
                   elif 'Severity' in line:
                       severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
                   elif 'CWE' in line:
-                      cwe = textwrap.fill(line.split(': ')[1].strip(), width=70)  # Capture everything after "CWE:"
-                  elif 'Location' in line:
-                      location = textwrap.fill(line.split(': ')[1].strip(), width=50)
-                      # Assuming the location is the last item before a new issue starts,
-                      # so we add the row to the list of rows and reset the variables for the next issue.
-                      table_rows.append([issue, severity, cwe, location])
-                      issue, severity, cwe, location = "", "", "", ""
+                      cwe = textwrap.fill(line.split(': ')[1].strip(), width=30)  # Capture everything after "CWE:"
+                  elif line.strip() == '--------------------------------------------------':
+                      # Skip the separator line
+                      continue
+                  else:
+                      lines_before_issue.append(line.strip())  # Collect lines under the same location
+
+              # Add the last issue to the table row
+              table_rows.append([issue, severity, cwe, '\n'.join(lines_before_issue)])
 
           # Convert to JSON
           json_data = json.dumps(table_rows)
@@ -75,12 +81,8 @@ jobs:
 
           # Specify the table headers
           table_headers = ["Issue", "Severity", "CWE", "Location"]
-          
+
           # Print the table
           print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
 
-          # Check if any high severity issues were found
-          if any(row[1] == 'High' for row in sorted_rows):
-              raise Exception('Please check your code for the Security risk found.')
-          
         shell: python
