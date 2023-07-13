@@ -71,11 +71,7 @@ jobs:
           # Add the last issue to the table row
           table_rows.append([issue, severity, cwe, '\n'.join(lines_before_issue)])
 
-          # Wrap the text in the "Location" column
-          wrapper = TextWrapper(width=80, subsequent_indent=' ' * 10)
-          wrapped_rows = [[issue, severity, cwe, '\n'.join(wrapper.wrap(location))] for issue, severity, cwe, location in table_rows]
-
-          # Custom sort function
+           # Custom sort function
           severity_order = {'High': 0, 'Medium': 1, 'Low': 2}
 
           # Sort the rows
