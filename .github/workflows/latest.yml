@@ -33,46 +33,53 @@ jobs:
 
       - name: Run Python script
         run: |
-          import os
+          import re
+          import textwrap
+          import json
           from tabulate import tabulate
-          def parse_file(file_path):
-              data = []
-              issue_dict = {}
-              severity_ranking = {'High': 1, 'Medium': 2, 'Low': 3}
-              issue_detail_flag = False
-              with open(file_path, 'r') as file:
-                  for line in file:
-                      line = line.strip()
-                      if line.startswith('>> Issue:'):
-                          issue_dict['Issue'] = line.split(':', 1)[1].strip()
-                          issue_detail_flag = True
-                      elif line.startswith('Severity:'):
-                          issue_dict['Issue Details'] = issue_dict.get('Issue', '')
-                          severity_confidence = line.split(':', 1)[1].strip().split()
-                          issue_dict['Severity'] = severity_confidence[0]
-                          issue_dict['Severity Ranking'] = severity_ranking.get(issue_dict['Severity'], 4)
-                          issue_detail_flag = False
-                      elif issue_detail_flag:
-                          issue_dict['Issue'] += ' ' + line.strip()
-                      elif line.startswith('CWE:'):
-                          issue_dict['CWE'] = line.split(':', 1)[1].strip()
-                      elif line.startswith('Location:'):
-                          issue_dict['Location'] = line.split(':', 1)[1].strip()
-                          data.append(issue_dict)
-                          issue_dict = {}
-              data.sort(key=lambda x: x.get('Severity Ranking', 4))
-              for issue in data:
-                  del issue['Severity Ranking']
-              return data
-          def main():
-              file_path = 'output/security_report.txt'
-              data = parse_file(file_path)
-              for i, row in enumerate(data, start=1):
-                  row['S. No.'] = i
-              print(tabulate(data, headers="keys", tablefmt="pipe"))
-              if any(issue['Severity'] == 'High' for issue in data):
-                  print("Check the code for the correction of security risk.")
-                  os._exit(1)
-          if __name__ == "__main__":
-              main()
+
+          # Specify the file path
+          file_path = 'bandit_report.txt'  # assuming the bandit output is saved as 'bandit_report.txt'
+
+          # To store the table rows
+          table_rows = []
+
+          # Open and read the file
+          with open(file_path, 'r') as file:
+              issue, severity, cwe, location = "", "", "", ""
+              for line in file:
+                  if 'Issue' in line:
+                      issue = textwrap.fill(line.split(': ')[1].strip(), width=30)
+                  elif 'Severity' in line:
+                      severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
+                  elif 'CWE' in line:
+                      cwe = textwrap.fill(line.split(': ')[1].strip(), width=70)  # Capture everything after "CWE:"
+                  elif 'Location' in line:
+                      location = textwrap.fill(line.split(': ')[1].strip(), width=20)
+                      # Assuming the location is the last item before a new issue starts,
+                      # so we add the row to the list of rows and reset the variables for the next issue.
+                      table_rows.append([issue, severity, cwe, location])
+                      issue, severity, cwe, location = "", "", "", ""
+
+          # Convert to JSON
+          json_data = json.dumps(table_rows)
+
+          # Parse JSON
+          parsed_json = json.loads(json_data)
+
+          # Custom sort function
+          severity_order = {'High': 0, 'Medium': 1, 'Low': 2}
+
+          # Sort the rows
+          sorted_rows = sorted(parsed_json, key=lambda x: severity_order[x[1]])
+
+          # Specify the table headers
+          table_headers = ["Issue", "Severity", "CWE", "Location"]
+
+          # Print the table
+          print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
+
+          # Check if any high severity issues were found
+          if any(row[1] == 'High' for row in sorted_rows):
+              raise Exception('Please check your code for the Security risk found.')
         shell: python
