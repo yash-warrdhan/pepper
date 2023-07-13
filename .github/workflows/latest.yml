@@ -39,26 +39,45 @@ jobs:
 
           # Read the Bandit report file
           with open('bandit_report.txt', 'r') as file:
-              file_contents = file.read()
+              file_contents = file.readlines()
 
-          # Regex pattern to capture the required information
-          pattern = r'Issue: (.*?)\n.*?Severity: (.*?)\n.*?CWE: (.*?)\n.*?Location: (.*?)\n'
-          matches = re.findall(pattern, file_contents, re.DOTALL)
-
-          # Format the matches into table rows
+          # To store the table rows
           table_rows = []
-          for match in matches:
-              issue = textwrap.fill(match[0], width=30)
-              severity = match[1].split()[0]
-              cwe = textwrap.fill(match[2], width=30)
-              location = match[3].strip()
-              table_rows.append([issue, severity, cwe, location])
+
+          issue, severity, cwe, location = "", "", "", ""
+          lines_before_issue = []  # Variable to store the lines before the next issue
+
+          for line in file_contents:
+              if 'Issue' in line:
+                  if issue != "":
+                      # Add the lines before the next issue to the table row
+                      table_rows.append([issue, severity, cwe, '\n'.join(lines_before_issue)])
+                  issue = textwrap.fill(line.split(': ')[1].strip(), width=30)
+                  lines_before_issue = []  # Reset lines_before_issue for the next issue
+              elif 'Severity' in line:
+                  severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
+              elif 'CWE' in line:
+                  cwe = textwrap.fill(line.split(': ')[1].strip(), width=30)  # Capture everything after "CWE:"
+              elif line.strip() == '--------------------------------------------------':
+                  # Skip the separator line
+                  continue
+              else:
+                  lines_before_issue.append(line.strip())  # Collect lines under the same location
+
+          # Add the last issue to the table row
+          table_rows.append([issue, severity, cwe, '\n'.join(lines_before_issue)])
+
+          # Convert to JSON
+          json_data = json.dumps(table_rows)
+
+          # Parse JSON
+          parsed_json = json.loads(json_data)
 
           # Custom sort function
           severity_order = {'High': 0, 'Medium': 1, 'Low': 2}
 
           # Sort the rows
-          sorted_rows = sorted(table_rows, key=lambda x: severity_order[x[1]])
+          sorted_rows = sorted(parsed_json, key=lambda x: severity_order[x[1]])
 
           # Specify the table headers
           table_headers = ["Issue", "Severity", "CWE", "Location"]
