@@ -50,6 +50,11 @@ jobs:
           lines_before_issue = []  # Variable to store the lines before the next issue
 
           for line in file_contents:
+              line = line.strip()  # Remove leading/trailing whitespace
+
+              if line.startswith("Code scanned:"):
+                  break  # Stop parsing after "Code scanned:"
+
               if 'Issue' in line:
                   if issue != "":
                       # Add the lines before the next issue to the table row
@@ -60,9 +65,6 @@ jobs:
                   severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
               elif 'CWE' in line:
                   cwe = textwrap.fill(line.split(': ')[1].strip(), width=30)  # Capture everything after "CWE:"
-              elif line.strip() == '--------------------------------------------------':
-                  # Skip the separator line
-                  continue
               else:
                   lines_before_issue.append(line.strip())  # Collect lines under the same location
 
