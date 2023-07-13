@@ -81,4 +81,4 @@ jobs:
           if any(row[1] == 'High' for row in sorted_rows):
               raise Exception('Please check your code for the Security risk found.')
           
-          shell: python
+        shell: python
