@@ -73,17 +73,11 @@ jobs:
           wrapper = TextWrapper(width=80, subsequent_indent=' ' * 10)
           wrapped_rows = [[issue, severity, cwe, '\n'.join(wrapper.wrap(location))] for issue, severity, cwe, location in table_rows]
 
-          # Convert to JSON
-          json_data = json.dumps(wrapped_rows)
-
-          # Parse JSON
-          parsed_json = json.loads(json_data)
-
           # Custom sort function
           severity_order = {'High': 0, 'Medium': 1, 'Low': 2}
 
           # Sort the rows
-          sorted_rows = sorted(parsed_json, key=lambda x: severity_order[x[1]])
+          sorted_rows = sorted(wrapped_rows, key=lambda x: severity_order[x[1]])
 
           # Specify the table headers
           table_headers = ["Issue", "Severity", "CWE", "Location"]
