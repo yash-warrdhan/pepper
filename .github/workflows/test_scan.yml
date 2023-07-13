@@ -15,14 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          node-version: '16'
+          python-version: 3.8
 
       - name: Install dependencies
         run: |
-          npm install -g bandit
+          python -m pip install --upgrade pip
+          pip install bandit
 
       - name: Security check - Bandit
         run: |
@@ -33,3 +34,55 @@ jobs:
         with:
           name: bandit_report
           path: bandit_report.txt
+
+      - name: Parse Bandit report
+        run: |
+          import re
+          import textwrap
+          import json
+          from tabulate import tabulate
+
+          # Specify the file path
+          file_path = 'bandit_report.txt'  # assuming the Bandit report is saved as 'bandit_report.txt'
+
+          # To store the table rows
+          table_rows = []
+
+          # Open and read the file
+          with open(file_path, 'r') as file:
+              issue, severity, cwe, location = "", "", "", ""
+              for line in file:
+                  if 'Issue' in line:
+                      issue = textwrap.fill(line.split(': ')[1].strip(), width=30)
+                  elif 'Severity' in line:
+                      severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
+                  elif 'CWE' in line:
+                      cwe = textwrap.fill(line.split(': ')[1].strip(), width=70)  # Capture everything after "CWE:"
+                  elif 'Location' in line:
+                      location = textwrap.fill(line.split(': ')[1].strip(), width=20)
+                      # Assuming the location is the last item before a new issue starts,
+                      # so we add the row to the list of rows and reset the variables for the next issue.
+                      table_rows.append([issue, severity, cwe, location])
+                      issue, severity, cwe, location = "", "", "", ""
+
+          # Convert to JSON
+          json_data = json.dumps(table_rows)
+
+          # Parse JSON
+          parsed_json = json.loads(json_data)
+
+          # Custom sort function
+          severity_order = {'High': 0, 'Medium': 1, 'Low': 2}
+
+          # Sort the rows
+          sorted_rows = sorted(parsed_json, key=lambda x: severity_order[x[1]])
+
+          # Specify the table headers
+          table_headers = ["Issue", "Severity", "CWE", "Location"]
+
+          # Check if any high severity issues were found
+          if any(row[1] == 'High' for row in sorted_rows):
+              raise Exception('Please check your code for the Security risk found.')
+          
+          # Print the table
+          print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
