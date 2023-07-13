@@ -1,4 +1,4 @@
-name: Bandit Scan
+name: Ban
 
 on: 
   push:
@@ -24,23 +24,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install bandit
+          pip install tabulate
 
       - name: Security check - Bandit
         run: |
           bandit -r . > bandit_report.txt || true
-          
-      - name: Upload Bandit report
-        uses: actions/upload-artifact@v2
-        with:
-          name: bandit_report
-          path: bandit_report.txt
 
       - name: Parse Bandit report
         run: |
           import re
           import textwrap
           import json
-          from tabulate import tabulate
 
           # Specify the file path
           file_path = 'bandit_report.txt'  # assuming the Bandit report is saved as 'bandit_report.txt'
@@ -80,9 +74,9 @@ jobs:
           # Specify the table headers
           table_headers = ["Issue", "Severity", "CWE", "Location"]
 
+          # Print the table
+          print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
+
           # Check if any high severity issues were found
           if any(row[1] == 'High' for row in sorted_rows):
               raise Exception('Please check your code for the Security risk found.')
-          
-          # Print the table
-          print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
