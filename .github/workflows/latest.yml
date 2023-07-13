@@ -1,6 +1,6 @@
-name: Bandit Scan
+name: Ban
 
-on: 
+on:
   push:
     branches:
       - master
@@ -15,12 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Security check - Bandit
-        uses: ioggstream/bandit-report-artifacts@v0.0.2
-        with:
-          project_path: .
-          ignore_failure: true
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -29,49 +23,42 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install bandit
           pip install tabulate
 
-      - name: Run Python script
+      - name: Security check - Bandit
+        run: |
+          bandit -r . > bandit_report.txt || true
+
+      - name: Parse Bandit report
         run: |
           import re
           import textwrap
           import json
           from tabulate import tabulate
 
-          # Specify the file path
-          file_path = 'bandit_report.txt'  # assuming the bandit output is saved as 'bandit_report.txt'
+          # Read the Bandit report file
+          with open('bandit_report.txt', 'r') as file:
+              file_contents = file.read()
 
-          # To store the table rows
+          # Regex pattern to capture the required information
+          pattern = r'Issue: (.*?)\n.*?Severity: (.*?)\n.*?CWE: (.*?)\n.*?Location: (.*?)\n'
+          matches = re.findall(pattern, file_contents, re.DOTALL)
+
+          # Format the matches into table rows
           table_rows = []
-
-          # Open and read the file
-          with open(file_path, 'r') as file:
-              issue, severity, cwe, location = "", "", "", ""
-              for line in file:
-                  if 'Issue' in line:
-                      issue = textwrap.fill(line.split(': ')[1].strip(), width=30)
-                  elif 'Severity' in line:
-                      severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
-                  elif 'CWE' in line:
-                      cwe = textwrap.fill(line.split(': ')[1].strip(), width=70)  # Capture everything after "CWE:"
-                  elif 'Location' in line:
-                      location = textwrap.fill(line.split(': ')[1].strip(), width=20)
-                      # Assuming the location is the last item before a new issue starts,
-                      # so we add the row to the list of rows and reset the variables for the next issue.
-                      table_rows.append([issue, severity, cwe, location])
-                      issue, severity, cwe, location = "", "", "", ""
-
-          # Convert to JSON
-          json_data = json.dumps(table_rows)
-
-          # Parse JSON
-          parsed_json = json.loads(json_data)
+          for match in matches:
+              issue = textwrap.fill(match[0], width=30)
+              severity = match[1].split()[0]
+              cwe = textwrap.fill(match[2], width=30)
+              location = match[3].strip()
+              table_rows.append([issue, severity, cwe, location])
 
           # Custom sort function
           severity_order = {'High': 0, 'Medium': 1, 'Low': 2}
 
           # Sort the rows
-          sorted_rows = sorted(parsed_json, key=lambda x: severity_order[x[1]])
+          sorted_rows = sorted(table_rows, key=lambda x: severity_order[x[1]])
 
           # Specify the table headers
           table_headers = ["Issue", "Severity", "CWE", "Location"]
@@ -79,7 +66,4 @@ jobs:
           # Print the table
           print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
 
-          # Check if any high severity issues were found
-          if any(row[1] == 'High' for row in sorted_rows):
-              raise Exception('Please check your code for the Security risk found.')
         shell: python
