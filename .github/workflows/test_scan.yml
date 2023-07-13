@@ -49,13 +49,13 @@ jobs:
               issue, severity, cwe, location = "", "", "", ""
               for line in file:
                   if 'Issue' in line:
-                      issue = textwrap.fill(line.split(': ')[1].strip(), width=30)
+                      issue = textwrap.fill(line.split(': ')[1].strip(), width=50)
                   elif 'Severity' in line:
                       severity = line.split(': ')[1].strip().split(' ')[0]  # Take only severity, exclude 'Confidence'
                   elif 'CWE' in line:
                       cwe = textwrap.fill(line.split(': ')[1].strip(), width=70)  # Capture everything after "CWE:"
                   elif 'Location' in line:
-                      location = textwrap.fill(line.split(': ')[1].strip(), width=20)
+                      location = textwrap.fill(line.split(': ')[1].strip(), width=50)
                       # Assuming the location is the last item before a new issue starts,
                       # so we add the row to the list of rows and reset the variables for the next issue.
                       table_rows.append([issue, severity, cwe, location])
