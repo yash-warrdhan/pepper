@@ -35,6 +35,8 @@ jobs:
           import re
           import textwrap
           import json
+          from tabulate import tabulate
+
 
           # Specify the file path
           file_path = 'bandit_report.txt'  # assuming the Bandit report is saved as 'bandit_report.txt'
