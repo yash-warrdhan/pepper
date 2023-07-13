@@ -43,7 +43,7 @@ jobs:
               with open(file_path, 'r') as file:
                   for line in file:
                       line = line.strip()
-                      if line.startswith('Issue:'):
+                      if line.startswith('>> Issue:'):
                           issue_dict['Issue'] = line.split(':', 1)[1].strip()
                           issue_detail_flag = True
                       elif line.startswith('Severity:'):
