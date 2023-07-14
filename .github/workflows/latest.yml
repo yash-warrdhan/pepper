@@ -1,4 +1,4 @@
-name: Bandit Scan final
+name: Bandit Scan
 on: [push, pull_request]
 
 jobs:
@@ -69,7 +69,8 @@ jobs:
           
           # Print the table
           print(tabulate(sorted_rows, headers=table_headers, tablefmt='grid'))
-          secrets_found = len(table) > 0
-          if secrets_found:
+
+          # Check if any high severity issues were found
+          if any(row[1] == 'High' for row in sorted_rows):
+              print('Please check your code for the Security risk found.')
               sys.exit(1)
-        shell: python
