@@ -74,4 +74,4 @@ jobs:
           if any(row[1] == 'High' for row in sorted_rows):
               print('Please check your code for the Security risk found.')
               sys.exit(1)
-          Shell: python
+        shell: python
