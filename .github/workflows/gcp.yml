@@ -1,0 +1,81 @@
+name: GCP Test
+
+on:
+  push:
+   
+  workflow_dispatch:
+
+jobs:
+  secret_scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y diffutils jq python3 python3-pip
+          python -m pip install detect-secrets
+          python3 -m pip install tabulate
+          python -m pip install --upgrade pip
+          
+      - name: Run Detect Secrets Scan
+        run: |
+          detect-secrets scan --exclude-files '\.git/.*' --exclude-files '\.gitmodules' >> detect_secrets_output.txt
+
+      - name: Auth
+        uses: google-github-actions/auth@v1
+        with:
+          service_account_key: ${{ secrets.GCS_SA_KEY }}
+          project_id: vunet-cybersecurity
+
+      - name: Upload Detect Secrets Output to GCS
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: 'detect_secrets_output.txt'
+          destination: 'gs://cicdpipelinee/secret_scan/detect_secrets_output.txt'
+
+  Bandit:
+    name: Bandit Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+          pip install tabulate
+
+      - name: Security check - Bandit
+        run: |
+          bandit -r . > bandit_report.txt || true
+
+      - name: Auth
+        uses: google-github-actions/auth@v1
+        with:
+          service_account_key: ${{ secrets.GCS_SA_KEY }}
+          project_id: vunet-cybersecurity
+
+      - name: Upload Bandit report to GCS
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: 'bandit_report.txt'
+          destination: 'gs://cicdpipelinee/bandit_scan/bandit_report.txt'
