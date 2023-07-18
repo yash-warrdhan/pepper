@@ -2,7 +2,6 @@ name: GCP Test
 
 on:
   push:
-   
   workflow_dispatch:
 
 jobs:
@@ -12,6 +11,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
           python -m pip install detect-secrets
           python3 -m pip install tabulate
           python -m pip install --upgrade pip
-          
+
       - name: Run Detect Secrets Scan
         run: |
           detect-secrets scan --exclude-files '\.git/.*' --exclude-files '\.gitmodules' >> detect_secrets_output.txt
@@ -41,7 +41,7 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: 'detect_secrets_output.txt'
-          destination: 'gs://cicdpipelinee/secret_scan/detect_secrets_output.txt'
+          destination: 'cicdpipelinee/secret_scan/detect_secrets_output.txt'
 
   Bandit:
     name: Bandit Scan
@@ -49,6 +49,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
+      
     steps:
       - uses: actions/checkout@v2
 
@@ -76,4 +77,4 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: 'bandit_report.txt'
-          destination: 'gs://cicdpipelinee/bandit_scan/bandit_report.txt'
+          destination: 'cicdpipelinee/bandit_scan/bandit_report.txt'
