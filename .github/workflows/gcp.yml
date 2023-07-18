@@ -41,7 +41,7 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: 'detect_secrets_output.txt'
-          destination: 'cicdpipelinee/secret_scan/detect_secrets_output.txt'
+          destination: 'cicdpipelinee/Detect secret/detect_secrets_output.txt'
 
   Bandit:
     name: Bandit Scan
@@ -77,4 +77,4 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v1
         with:
           path: 'bandit_report.txt'
-          destination: 'cicdpipelinee/bandit_scan/bandit_report.txt'
+          destination: 'cicdpipelinee/Bandit result/bandit_report.txt'
