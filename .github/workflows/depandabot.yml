@@ -1,0 +1,35 @@
+name: Dependabot Auto-Update
+
+on:
+  push:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Dependabot
+        uses: dependabot/dependabot-core@v0.142.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          command: update
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "dependabot@example.com"
+          git config --local user.name "Dependabot"
+          git add .
+          git commit -m "chore: Auto-update dependencies"
+          git push
